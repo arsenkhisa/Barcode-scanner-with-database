@@ -8,11 +8,14 @@
 import SwiftUI
 import FirebaseCore
 
+// главная структура приложения
 @main
 struct ShopScannerApp: App {
     
     @ObservedObject private var vm = AppViewModel()
+    
     var body: some Scene {
+        // окно приложения
         WindowGroup {
             ContentViewScanner()
                 .background(.black)
@@ -24,4 +27,5 @@ struct ShopScannerApp: App {
         }
     }
 }
+
 

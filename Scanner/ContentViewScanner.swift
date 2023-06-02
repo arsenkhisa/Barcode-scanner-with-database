@@ -12,7 +12,9 @@ import AVFoundation
 import CoreImage
 import CoreImage.CIFilterBuiltins
 
+// главное представление
 struct ContentViewScanner: View {
+    // связь с глобальной моделью представления приложения
     @EnvironmentObject var vm: AppViewModel
     @State var presentSheet = true
     @State private var showAlert = false
@@ -25,6 +27,7 @@ struct ContentViewScanner: View {
     @State private var selectedScan: Scan?
     @State private var isShowingDialog = false
     
+    // генерация QR-кода
     func generateQR() -> Data? {
         let filter = CIFilter.qrCodeGenerator()
         let text = String(Int.random(in: 1000000000...9999999999))
@@ -36,8 +39,8 @@ struct ContentViewScanner: View {
         let uiimage = UIImage(ciImage: scaledCIImage)
         return uiimage.pngData()!
     }
-    
-   
+
+    // включение/выключение фонарика
     func toggleTorch() {
         do {
             try captureDevice?.lockForConfiguration()
@@ -54,6 +57,7 @@ struct ContentViewScanner: View {
         }
     }
     
+    // контейнер с нижними элементами интерфейса
     private var bottomContainerView: some View {
         NavigationStack {
             VStack {
@@ -136,6 +140,7 @@ struct ContentViewScanner: View {
         .navigationTitle("Отсканированные товары")
     }
     
+    // обработка распознанного кода
     func handleScannedCode() {
         if let scan = selectedScan,
            let lastScanned = vm.recognizedItems.last {
@@ -145,7 +150,6 @@ struct ContentViewScanner: View {
                     vm.dataManager.checkExtraQRCode(scannedCode, for: scan.extraqrcode)
                     showAlert = true
                     if vm.dataManager.extraCodeValid == true {
-//                        vm.dataManager.addToCart(scan: scan)
                         alertTitle = "Дополнительный код верный"
                         alertMessage = "Дополнительный код верный, товар добавлен в корзину"
                     } else {
@@ -160,6 +164,7 @@ struct ContentViewScanner: View {
         }
     }
     
+    // проверка дополнительного QR-кода
     func checkExtraQRCode(scan: Scan) {
         if scan.extraqr {
             showAlert = true
@@ -202,6 +207,27 @@ struct ContentViewScanner: View {
         }
     }
     
+    // главное представление со сканером данных
+    private var mainView: some View {
+        DataScannerView(
+            recognizedItems: $vm.recognizedItems,
+            recognizedDataType: vm.recognizedDataType)
+        .background {Color.gray.opacity(0.3)}
+        .ignoresSafeArea()
+        .id(vm.dataScannerViewId)
+        .sheet(isPresented: .constant(true)) {
+                bottomContainerView
+                    .backgroundStyle(.thinMaterial)
+                    .presentationDetents([.large, .medium, .fraction(0.25)])
+                    .presentationDragIndicator(.visible)
+                    .interactiveDismissDisabled()
+                    .onReceive(vm.recognizedItems.publisher.last().compactMap { $0 }) { _ in
+                        handleScannedCode()
+                    }
+        }
+    }
+    
+    // представление корзины
     private var cartView: some View {
         NavigationStack{
             VStack{
@@ -237,8 +263,9 @@ struct ContentViewScanner: View {
             }
         }
         .navigationTitle("Корзина")
-            }
+    }
     
+    // представление оплаты
     private var paymentView: some View {
         NavigationStack{
             ZStack{
@@ -250,6 +277,7 @@ struct ContentViewScanner: View {
         .navigationTitle("Отсканируйте QR-код на кассе")
     }
     
+    // представление элементов корзины
     private var cartItemView: some View {
         ForEach(vm.dataManager.cartItems, id: \.index) { cartItem in
             ZStack {
@@ -293,28 +321,7 @@ struct ContentViewScanner: View {
         .padding(.all)
     }
 
-
-
-
-    private var mainView: some View {
-            DataScannerView(
-                recognizedItems: $vm.recognizedItems,
-                recognizedDataType: vm.recognizedDataType)
-            .background {Color.gray.opacity(0.3)}
-            .ignoresSafeArea()
-            .id(vm.dataScannerViewId)
-            .sheet(isPresented: .constant(true)) {
-                    bottomContainerView
-                        .backgroundStyle(.thinMaterial)
-                        .presentationDetents([.large, .medium, .fraction(0.25)])
-                        .presentationDragIndicator(.visible)
-                        .interactiveDismissDisabled()
-                        .onReceive(vm.recognizedItems.publisher.last().compactMap { $0 }) { _ in
-                            handleScannedCode()
-                        }
-            }
-    }
-    
+    // представление заголовка
     private var headerView: some View {
         VStack {
             HStack{

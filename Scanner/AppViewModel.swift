@@ -5,16 +5,17 @@
 //  Created by Arsen on 02.02.2023.
 //
 
-
 import AVKit
 import Foundation
 import SwiftUI
 import VisionKit
 
+// перечисление ScanType для указания типа сканирования (штрих-код или текст)
 enum ScanType: String {
     case barcode, text
 }
 
+// перечисление DataScannerAccessStatusType для указания статуса доступа к сканеру данных
 enum DataScannerAccessStatusType {
     case notDetermined
     case cameraAccessNotGranted
@@ -26,38 +27,40 @@ enum DataScannerAccessStatusType {
 @MainActor
 final class AppViewModel: ObservableObject {
     
-    @Published var dataScannerAccessStatus: DataScannerAccessStatusType = .notDetermined
-    @Published var recognizedItems: [RecognizedItem] = [] {
-        didSet { fetchLastScanned() }
+    @Published var dataScannerAccessStatus: DataScannerAccessStatusType = .notDetermined // статус доступа к сканеру данных
+    @Published var recognizedItems: [RecognizedItem] = [] { // массив распознанных элементов
+        didSet { fetchLastScanned() } // вызывается при изменении массива распознанных элементов
     }
-    @Published var scanType: ScanType = .barcode
-    @Published var textContentType: DataScannerViewController.TextContentType?
-    @Published var recognizesMultipleItems = true
-    @ObservedObject var dataManager = DataManager()
+    @Published var scanType: ScanType = .barcode // тип сканирования по умолчанию - штрих-код
+    @Published var textContentType: DataScannerViewController.TextContentType? // тип контента текста
+    @Published var recognizesMultipleItems = true // флаг, указывающий на возможность распознавания нескольких элементов
+    @ObservedObject var dataManager = DataManager() // объект DataManager для управления данными
     
-    @Published var shouldShowQRScanner = false
-    @Published var isQRCodeValid = false
-
-    var recognizedDataType: DataScannerViewController.RecognizedDataType {
+    @Published var shouldShowQRScanner = false // флаг, указывающий на необходимость отображения сканера QR-кода
+    @Published var isQRCodeValid = false // флаг, указывающий на валидность QR-кода
+    
+    var recognizedDataType: DataScannerViewController.RecognizedDataType { // тип распознаваемых данных
         scanType == .barcode ? .barcode() : .text(textContentType: textContentType)
     }
-    var headerText: String {
+    var headerText: String { // текст заголовка
         if recognizedItems.isEmpty {
-            return "Scanning \(scanType.rawValue)"
+            return "Scanning \(scanType.rawValue)" // если массив распознанных элементов пуст, выводится текст "Scanning" + тип сканирования
         } else {
-            return "Recognized item:"
+            return "Recognized item:" // иначе выводится текст "Recognized item:"
         }
     }
-      var dataScannerViewId: Int {
+    var dataScannerViewId: Int { // идентификатор DataScannerView
         var hasher = Hasher()
         if let textContentType {
             hasher.combine(textContentType)
         }
         return hasher.finalize()
     }
-    private var isScannerAvailable: Bool {
+    private var isScannerAvailable: Bool { // флаг доступности сканера данных
         DataScannerViewController.isAvailable && DataScannerViewController.isSupported
     }
+    
+    // метод для запроса статуса доступа к сканеру данных
     func requestDataScannerAccessStatus() async {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
             dataScannerAccessStatus = .cameraNotAvailable
@@ -78,7 +81,8 @@ final class AppViewModel: ObservableObject {
         default: break
         }
     }
-
+    
+    // метод для получения последнего отсканированного элемента
     func fetchLastScanned() {
         guard
             let lastScanned = recognizedItems.last,
@@ -98,6 +102,6 @@ final class AppViewModel: ObservableObject {
         }
             
         dataManager.fetchScans(codenumbers: codenumbers, extracode: isQRCodeValid)
-        print("Scanned barcode: \(codenumbers)") // Выводим номер штрих-кода в консоль
+        print("Scanned barcode: \(codenumbers)") // выводится номер штрих-кода в консоль
     }
 }
